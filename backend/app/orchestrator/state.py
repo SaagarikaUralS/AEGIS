@@ -1,19 +1,20 @@
-from typing import TypedDict, List, Dict, Any
+from typing import TypedDict, Any
 
 
 class InvestigationState(TypedDict, total=False):
     case_id: str
+    command: str
 
-    requested_agents: List[str]
+    selected_agent: str
+    task: str
+    evidence_ids: list[str]
+    routing_confidence: float
 
-    # Evidence loaded from the Knowledge Graph
-    evidence: List[Dict[str, Any]]
+    evidence: list[dict[str, Any]]
 
-    execution_log: List[str]
+    entities: list[dict[str, Any]]
+    patterns: list[dict[str, Any]]
+    leads: list[dict[str, Any]]
+    safeguarding_flags: list[dict[str, Any]]
 
-    agent_status: Dict[str, str]
-
-    entities: List[Dict[str, Any]]
-    patterns: List[Dict[str, Any]]
-    leads: List[Dict[str, Any]]
-    safeguarding_flags: List[Dict[str, Any]]
+    result: dict[str, Any]

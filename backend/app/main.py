@@ -15,6 +15,9 @@ from app.agents.victim_safeguarding import run_victim_safeguarding
 from app.orchestrator.runner import run_investigation
 from app.copilot.assistant import ask_copilot
 from app.knowledge_graph.neo4j_client import neo4j_client
+from app.orchestrator.command_runner import run_orchestrated_command
+from app.api.orchestrator import router as orchestrator_router
+
 
 app = FastAPI(
     title="AEGIS API",
@@ -22,22 +25,20 @@ app = FastAPI(
     version="0.2.0",
 )
 
+app.include_router(orchestrator_router)
+
 class CopilotRequest(BaseModel):
     question: str
 
-# ============================================================
-# REQUEST MODEL
-# ============================================================
 
 class EntityExtractionRequest(BaseModel):
     case_id: str
     evidence_id: str
     evidence_text: str
 
+class OrchestratorCommandRequest(BaseModel):
+    command: str
 
-# ============================================================
-# ROOT
-# ============================================================
 
 @app.get("/")
 def root():
@@ -48,10 +49,6 @@ def root():
         "message": "AI-Enabled Evidence & Graph Intelligence System",
     }
 
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
 
 @app.get("/health")
 def health_check():
@@ -73,11 +70,7 @@ def health_check():
         )
 
 
-# ============================================================
-# GET CASE GRAPH
-# ============================================================
-
-@app.get("/cases/{case_id}")
+app.get("/cases/{case_id}")
 def get_case(case_id: str):
 
     query = """
@@ -108,10 +101,6 @@ def get_case(case_id: str):
         "graph": results,
     }
 
-
-# ============================================================
-# ENTITY EXTRACTION AGENT
-# ============================================================
 
 @app.post("/agents/entity-extraction")
 def entity_extraction(
@@ -454,6 +443,27 @@ def get_case_overview(case_id: str):
         raise
 
     except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=str(error),
+        )
+
+
+@app.post("/orchestrator/command")
+def orchestrator_command(
+    case_id: str,
+    request: OrchestratorCommandRequest,
+):
+
+    try:
+
+        return run_orchestrated_command(
+            case_id=case_id,
+            command=request.command,
+        )
+
+    except Exception as error:
+
         raise HTTPException(
             status_code=500,
             detail=str(error),

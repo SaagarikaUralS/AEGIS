@@ -18,7 +18,7 @@ from app.orchestrator.runner import run_investigation
 from app.copilot.assistant import ask_copilot
 
 from app.api.orchestrator import router as orchestrator_router
-from app.api import executions
+from app.api import executions, cases
 
 
 app = FastAPI(
@@ -39,6 +39,7 @@ app.add_middleware(
 
 app.include_router(orchestrator_router)
 app.include_router(executions.router)
+app.include_router(cases.router)
 
 class CopilotRequest(BaseModel):
     question: str

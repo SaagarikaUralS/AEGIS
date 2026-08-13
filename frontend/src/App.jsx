@@ -19,7 +19,10 @@ const AGENT_ICONS = {
 
 function App() {
   const [view, setView] = useState("case");
-  const [caseId, setCaseId] = useState("CASE-001");
+  const [caseId, setCaseId] = useState(null);
+
+  const [cases, setCases] = useState([]);
+  const [casesLoading, setCasesLoading] = useState(false);
 
   const [tasks, setTasks] = useState([]);
   const [status, setStatus] = useState(null);
@@ -34,14 +37,51 @@ function App() {
   const [copilotAnswer, setCopilotAnswer] = useState("");
   const [copilotLoading, setCopilotLoading] = useState(false);
 
+  async function loadCases() {
+    setCasesLoading(true);
+
+    try {
+      const response = await fetch(`${API}/cases`);
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const data = await response.json();
+      setCases(data.cases || []);
+    } catch (error) {
+      console.error("Case loading failed:", error);
+    } finally {
+      setCasesLoading(false);
+    }
+  }
+  
   async function loadDashboard() {
     try {
-      const [tasksRes, statusRes, executionsRes, overviewRes] = await Promise.all([
-        fetch(`${API}/orchestrator/tasks?case_id=${caseId}`),
+      const tasksUrl = caseId
+        ? `${API}/orchestrator/tasks?case_id=${caseId}`
+        : `${API}/orchestrator/tasks`;
+
+      const executionsUrl = caseId
+        ? `${API}/executions?case_id=${caseId}`
+        : `${API}/executions`;
+
+      const requests = [
+        fetch(tasksUrl),
         fetch(`${API}/orchestrator/status`),
-        fetch(`${API}/executions?case_id=${caseId}`),
-        fetch(`${API}/cases/${caseId}/overview`),
-      ]);
+        fetch(executionsUrl),
+      ];
+
+      if (caseId) {
+        requests.push(
+          fetch(`${API}/cases/${caseId}/overview`)
+        );
+      }
+
+      const responses = await Promise.all(requests);
+
+      const [tasksRes, statusRes, executionsRes, overviewRes] =
+        responses;
 
       if (tasksRes.ok) {
         const data = await tasksRes.json();
@@ -58,7 +98,7 @@ function App() {
         setExecutions(data.executions || []);
       }
 
-      if (overviewRes.ok) {
+      if (overviewRes?.ok) {
         const data = await overviewRes.json();
         setOverview(data);
       }
@@ -68,12 +108,27 @@ function App() {
   }
 
   useEffect(() => {
+    loadCases();
+  }, []);
+
+  useEffect(() => {
     loadDashboard();
 
     const interval = setInterval(loadDashboard, 1500);
 
     return () => clearInterval(interval);
   }, [caseId]);
+
+  function openCase(selectedCaseId) {
+    setCaseId(selectedCaseId);
+    setView("case");
+  }
+
+  function backToCases() {
+    setCaseId(null);
+    setView("case");
+    loadCases();
+  }
 
   async function submitCommand(event) {
     event.preventDefault();
@@ -218,7 +273,11 @@ function App() {
                   ? "nav-button active"
                   : "nav-button"
               }
-              onClick={() => setView("case")}
+              onClick={() => {
+                setCaseId(null);
+                setView("case");
+                loadCases();
+              }}
             >
               <span>▣</span>
               Case Workspace
@@ -230,33 +289,16 @@ function App() {
                   ? "nav-button active"
                   : "nav-button"
               }
-              onClick={() => setView("orchestrator")}
+              onClick={() => {
+                setView("orchestrator");
+                loadDashboard();
+              }}
             >
               <span>◫</span>
               Orchestrator
             </button>
           </div>
-
-          <div className="sidebar-section">
-            <div className="sidebar-label">ACTIVE CASE</div>
-
-            <select
-              className="case-select"
-              value={caseId}
-              onChange={(event) =>
-                setCaseId(event.target.value)
-              }
-            >
-              <option value="CASE-001">
-                CASE-001 · Digital Investigation Alpha
-              </option>
-
-              <option value="CASE-002">
-                CASE-002 · Digital Investigation Beta
-              </option>
-            </select>
-          </div>
-
+          
           <div className="sidebar-footer">
             <div className="human-control">
               <span className="control-icon">✓</span>
@@ -270,32 +312,44 @@ function App() {
         </aside>
 
         <main className="content">
-          {view === "case" ? (
+          {view === "case" && !caseId && (
+            <CaseBrowser
+              cases={cases}
+              loading={casesLoading}
+              onOpenCase={openCase}
+            />
+          )}
+
+          {view === "case" && caseId && (
             <CaseWorkspace
               caseId={caseId}
-              tasks={tasks}
-              executions={executions}
               overview={overview}
+              onBack={backToCases}
+              tasks={tasks}
               counts={counts}
+              status={status}
+              executions={executions}
               copilotQuestion={copilotQuestion}
               setCopilotQuestion={setCopilotQuestion}
               copilotAnswer={copilotAnswer}
               copilotLoading={copilotLoading}
               askCopilot={askCopilot}
             />
-          ) : (
+          )}
+
+          {view === "orchestrator" && (
             <OrchestratorView
-              command={command}
-              setCommand={setCommand}
-              submitCommand={submitCommand}
-              submitting={submitting}
-              status={status}
               tasks={tasks}
+              counts={counts}
+              status={status}
               executions={executions}
               selectedTask={selectedTask}
               setSelectedTask={setSelectedTask}
               retryTask={retryTask}
-              counts={counts}
+              command={command}
+              setCommand={setCommand}
+              submitCommand={submitCommand}
+              submitting={submitting}
             />
           )}
         </main>
@@ -304,11 +358,108 @@ function App() {
   );
 }
 
+function CaseBrowser({ cases, loading, onOpenCase }) {
+  const [search, setSearch] = useState("");
+
+  const filteredCases = cases.filter((item) => {
+    const text = `
+      ${item.case_id}
+      ${item.title}
+      ${item.status}
+      ${item.last_modified_by}
+    `.toLowerCase();
+
+    return text.includes(search.toLowerCase());
+  });
+  return (
+    <div className="case-browser">
+      <div className="page-heading">
+        <div>
+          <div className="eyebrow">INVESTIGATIONS</div>
+          <h1>Case Workspace</h1>
+          <p className="page-subtitle">
+            Select an investigation to view its complete intelligence,
+            evidence, findings, leads, and agent activity.
+          </p>
+        </div>
+
+        <div className="case-count">
+          {cases.length} {cases.length === 1 ? "case" : "cases"}
+        </div>
+      </div>
+
+      <div className="case-toolbar">
+        <div className="case-search">
+          <span>⌕</span>
+          <input
+            type="text"
+            placeholder="Search cases..."
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="case-list">
+        <div className="case-list-header">
+          <span>CASE</span>
+          <span>STATUS</span>
+          <span>LAST MODIFIED BY</span>
+          <span>LAST MODIFIED</span>
+        </div>
+
+        {loading ? (
+          <div className="case-empty">
+            Loading investigations...
+          </div>
+        ) : cases.length === 0 ? (
+          <div className="case-empty">
+            No investigations found.
+          </div>
+        ) : (
+          filteredCases.map((item) => (
+            <button
+              key={item.case_id}
+              className="case-row"
+              onClick={() => onOpenCase(item.case_id)}
+            >
+              <div className="case-main">
+                <div className="case-icon">📁</div>
+
+                <div>
+                  <div className="case-name">
+                    {item.case_id}
+                  </div>
+
+                  <div className="case-title">
+                    {item.title}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <StatusBadge status={item.status} />
+              </div>
+
+              <div className="case-modified-by">
+                {item.last_modified_by || "AEGIS"}
+              </div>
+
+              <div className="case-modified">
+                {formatDate(item.last_modified_at)}
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 function CaseWorkspace({
   caseId,
   overview,
   tasks,
+  onBack,
   executions,
   counts,
   copilotQuestion,
@@ -326,6 +477,12 @@ function CaseWorkspace({
 
   return (
     <>
+      <button
+        className="back-to-cases"
+        onClick={onBack}
+      >
+        ← All Cases
+      </button>
       <div className="page-header">
         <div>
           <div className="eyebrow">CASE WORKSPACE</div>
@@ -787,9 +944,13 @@ function OrchestratorView({
 
           <TaskColumn
             title="COMPLETED"
-            tasks={tasks.filter(
-              (task) => task.status === "COMPLETED"
-            )}
+            tasks={[...tasks]
+              .filter((task) => task.status === "COMPLETED")
+              .sort(
+                (a, b) =>
+                  new Date(b.completed_at || 0) -
+                  new Date(a.completed_at || 0)
+              )}
             onSelect={setSelectedTask}
           />
         </div>

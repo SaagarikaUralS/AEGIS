@@ -115,7 +115,7 @@ def deterministic_plan(
 
         tasks.append(
             PlannedTask(
-                case_id=case_id,
+                case_id=case_id.upper(),
                 agent_id=agent_id,
                 description=description,
                 evidence_ids=evidence_ids or [],
@@ -123,135 +123,270 @@ def deterministic_plan(
         )
 
     # ---------------------------------------------------------
-    # Evidence IDs
+    # Split command into operation clauses
+    #
+    # Examples:
+    #
+    # "correlation on CASE-001 and CASE-002"
+    #   -> one clause, two cases
+    #
+    # "entity extraction on CASE-001 and correlation
+    #  for CASE-002"
+    #   -> two clauses
     # ---------------------------------------------------------
 
-    evidence_ids = extract_evidence_ids(text)
-
-    # ---------------------------------------------------------
-    # ENTITY EXTRACTION
-    # ---------------------------------------------------------
-
-    entity_match = re.search(
-        r"(?:extract entit(?:y|ies)|entity extraction|"
-        r"identify entities|parse evidence)"
-        r"(?:\s+(?:from|in))?\s*"
-        r"((?:RAW|EVID)-\d+(?:\s*,\s*(?:RAW|EVID)-\d+)*)",
+    clauses = re.split(
+        r"\s+\band\b\s+(?="
+        r"(?:run|perform|execute|do|"
+        r"extract|entity|correlat|analyse|analyze|"
+        r"generate|find|check|identify|"
+        r"victim|safeguard|lead)"
+        r")",
         text,
-        re.IGNORECASE,
+        flags=re.IGNORECASE,
     )
 
-    if entity_match:
-        ids = re.findall(
-            r"(?:RAW|EVID)-\d+",
-            entity_match.group(1),
-            re.IGNORECASE,
-        )
-
-        case_ids = extract_case_ids(text)
-
-        add_task(
-            agent_id="entity_extraction",
-            case_id=case_ids[0] if case_ids else default_case_id,
-            description=f"Extract entities from {', '.join(ids)}",
-            evidence_ids=ids,
-        )
-
     # ---------------------------------------------------------
-    # VICTIM SAFEGUARDING
+    # If "and" is only connecting multiple CASE IDs,
+    # don't split it.
+    #
+    # Example:
+    # "correlation on CASE-001 and CASE-002"
+    #
+    # remains one clause.
     # ---------------------------------------------------------
 
-    safeguarding_match = re.search(
-        r"(?:victim\s+safeguarding|"
-        r"safeguarding|"
-        r"victim\s+protection|"
-        r"check\s+victims|"
-        r"check\s+safeguarding)"
-        r"(?:\s+(?:on|for|in))?\s*"
-        r"(CASE-\d+)",
-        text,
-        re.IGNORECASE,
-    )
-
-    if safeguarding_match:
-        case_id = safeguarding_match.group(1).upper()
-
-        add_task(
-            agent_id="victim_safeguarding",
-            case_id=case_id,
-            description=f"Run victim safeguarding analysis on {case_id}",
-        )
-
     # ---------------------------------------------------------
-    # CORRELATION / PATTERN ANALYSIS
+    # Process each operation independently
     # ---------------------------------------------------------
 
-    correlation_match = re.search(
-        r"(?:correlat\w*|"
-        r"pattern\s+analysis|"
-        r"find\s+connections|"
-        r"find\s+relationships|"
-        r"find\s+links|"
-        r"link\s+accounts|"
-        r"cross[-\s]?case|"
-        r"analyse|"
-        r"analyze)"
-        r"(?:\s+(?:on|for|in))?\s*"
-        r"(CASE-\d+)",
-        text,
-        re.IGNORECASE,
-    )
+    for clause in clauses:
 
-    if correlation_match:
-        case_id = correlation_match.group(1).upper()
+        clause = clause.strip()
 
-        add_task(
-            agent_id="correlation",
-            case_id=case_id,
-            description=f"Run correlation and pattern analysis on {case_id}",
-        )
+        if not clause:
+            continue
 
-    # ---------------------------------------------------------
-    # LEAD INTELLIGENCE
-    # ---------------------------------------------------------
+        case_ids = extract_case_ids(clause)
+        evidence_ids = extract_evidence_ids(clause)
 
-    lead_match = re.search(
-        r"(?:generate\s+investigative\s+leads|"
-        r"generate\s+leads|"
-        r"find\s+leads|"
-        r"lead\s+intelligence|"
-        r"identify\s+persons\s+of\s+interest)"
-        r"(?:\s+(?:on|for|in|from))?\s*"
-        r"(CASE-\d+)?",
-        text,
-        re.IGNORECASE,
-    )
+        # =====================================================
+        # ENTITY EXTRACTION
+        # =====================================================
 
-    if lead_match:
-        case_id = lead_match.group(1)
-
-        if not case_id:
-            case_ids = extract_case_ids(text)
-            case_id = case_ids[0] if case_ids else default_case_id
-
-        if case_id:
-            case_id = case_id.upper()
-
-            add_task(
-                agent_id="lead_intelligence",
-                case_id=case_id,
-                description=f"Generate investigative leads for {case_id}",
+        entity_requested = bool(
+            re.search(
+                r"\b(?:extract\s+entit(?:y|ies)|"
+                r"entity\s+extraction|"
+                r"entity\s+extractor|"
+                r"extractor\s+agent|"
+                r"identify\s+entities|"
+                r"parse\s+evidence)\b",
+                clause,
+                re.IGNORECASE,
             )
+        )
+
+        if entity_requested:
+
+            # -------------------------------------------------
+            # Multiple CASE IDs
+            #
+            # "entity extraction on CASE-001 and CASE-002"
+            # -------------------------------------------------
+
+            if case_ids:
+
+                for case_id in case_ids:
+
+                    add_task(
+                        agent_id="entity_extraction",
+                        case_id=case_id,
+                        description=(
+                            f"Extract entities from "
+                            f"available evidence in {case_id}"
+                        ),
+                        evidence_ids=evidence_ids,
+                    )
+
+            # -------------------------------------------------
+            # Evidence IDs without explicit CASE
+            # -------------------------------------------------
+
+            elif evidence_ids:
+
+                add_task(
+                    agent_id="entity_extraction",
+                    case_id=default_case_id,
+                    description=(
+                        f"Extract entities from "
+                        f"{', '.join(evidence_ids)}"
+                    ),
+                    evidence_ids=evidence_ids,
+                )
+
+            # -------------------------------------------------
+            # No case/evidence → default case
+            # -------------------------------------------------
+
+            else:
+
+                add_task(
+                    agent_id="entity_extraction",
+                    case_id=default_case_id,
+                    description=(
+                        f"Extract entities from "
+                        f"available evidence in "
+                        f"{default_case_id}"
+                    ),
+                )
+
+        # =====================================================
+        # CORRELATION
+        # =====================================================
+
+        correlation_requested = bool(
+            re.search(
+                r"\b(?:"
+                r"correlat\w*|"
+                r"correlati+on|"
+                r"pattern\s+analysis|"
+                r"find\s+connections|"
+                r"find\s+relationships|"
+                r"find\s+links|"
+                r"link\s+accounts|"
+                r"cross[-\s]?case|"
+                r"analyse|"
+                r"analyze"
+                r")\b",
+                clause,
+                re.IGNORECASE,
+            )
+        )
+
+        if correlation_requested:
+
+            if case_ids:
+
+                for case_id in case_ids:
+
+                    add_task(
+                        agent_id="correlation",
+                        case_id=case_id,
+                        description=(
+                            f"Run correlation and pattern "
+                            f"analysis on {case_id}"
+                        ),
+                    )
+
+            else:
+
+                add_task(
+                    agent_id="correlation",
+                    case_id=default_case_id,
+                    description=(
+                        f"Run correlation and pattern "
+                        f"analysis on {default_case_id}"
+                    ),
+                )
+
+        # =====================================================
+        # LEAD INTELLIGENCE
+        # =====================================================
+
+        lead_requested = bool(
+            re.search(
+                r"\b(?:"
+                r"generate\s+investigative\s+leads|"
+                r"generate\s+leads|"
+                r"lead\s+generation|"
+                r"find\s+leads|"
+                r"lead\s+intelligence|"
+                r"identify\s+persons\s+of\s+interest"
+                r")\b",
+                clause,
+                re.IGNORECASE,
+            )
+        )
+
+        if lead_requested:
+
+            if case_ids:
+
+                for case_id in case_ids:
+
+                    add_task(
+                        agent_id="lead_intelligence",
+                        case_id=case_id,
+                        description=(
+                            f"Generate investigative leads "
+                            f"for {case_id}"
+                        ),
+                    )
+
+            else:
+
+                add_task(
+                    agent_id="lead_intelligence",
+                    case_id=default_case_id,
+                    description=(
+                        f"Generate investigative leads "
+                        f"for {default_case_id}"
+                    ),
+                )
+
+        # =====================================================
+        # VICTIM SAFEGUARDING
+        # =====================================================
+
+        safeguarding_requested = bool(
+            re.search(
+                r"\b(?:victim\s+safeguarding|"
+                r"victim\s+safeguard|"
+                r"safeguarding|"
+                r"safeguard|"
+                r"victim\s+protection|"
+                r"check\s+victims|"
+                r"check\s+safeguarding)\b",
+                clause,
+                re.IGNORECASE,
+            )
+        )
+
+        if safeguarding_requested:
+
+            if case_ids:
+
+                for case_id in case_ids:
+
+                    add_task(
+                        agent_id="victim_safeguarding",
+                        case_id=case_id,
+                        description=(
+                            f"Run victim safeguarding "
+                            f"analysis on {case_id}"
+                        ),
+                    )
+
+            else:
+
+                add_task(
+                    agent_id="victim_safeguarding",
+                    case_id=default_case_id,
+                    description=(
+                        f"Run victim safeguarding "
+                        f"analysis on {default_case_id}"
+                    ),
+                )
 
     # ---------------------------------------------------------
-    # SAFETY NET
+    # Safety net
     # ---------------------------------------------------------
 
     if not tasks:
         return None
 
     return TaskPlan(tasks=tasks)
-
 
 # --------------------------------------------------
 # LLM fallback planner

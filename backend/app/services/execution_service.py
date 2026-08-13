@@ -233,14 +233,16 @@ def get_executions(case_id: str | None = None):
         OPTIONAL MATCH (e)-[:EXECUTES_TASK]->(t)
         OPTIONAL MATCH (e)-[:RUNS_AGENT]->(a)
 
+        WITH e, t, collect(a) AS agent_executions
+
         RETURN
             e {
                 .*,
                 task: t,
-                agent_executions: collect(a)
+                agent_executions: agent_executions
             } AS execution
 
-        ORDER BY e.created_at DESC
+        ORDER BY execution.created_at DESC
         """
 
         params = {
@@ -255,14 +257,16 @@ def get_executions(case_id: str | None = None):
         OPTIONAL MATCH (e)-[:EXECUTES_TASK]->(t)
         OPTIONAL MATCH (e)-[:RUNS_AGENT]->(a)
 
+        WITH e, t, collect(a) AS agent_executions
+
         RETURN
             e {
                 .*,
                 task: t,
-                agent_executions: collect(a)
+                agent_executions: agent_executions
             } AS execution
 
-        ORDER BY e.created_at DESC
+        ORDER BY execution.created_at DESC
         """
 
         params = {}

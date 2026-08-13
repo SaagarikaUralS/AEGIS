@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 import os
 import shutil
@@ -12,11 +13,12 @@ from app.agents.entity_extraction import run_entity_extraction
 from app.agents.correlation import run_correlation
 from app.agents.lead_intelligence import run_lead_intelligence
 from app.agents.victim_safeguarding import run_victim_safeguarding
+
 from app.orchestrator.runner import run_investigation
 from app.copilot.assistant import ask_copilot
-from app.knowledge_graph.neo4j_client import neo4j_client
-from app.orchestrator.command_runner import run_orchestrated_command
+
 from app.api.orchestrator import router as orchestrator_router
+from app.api import executions
 
 
 app = FastAPI(
@@ -25,7 +27,18 @@ app = FastAPI(
     version="0.2.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(orchestrator_router)
+app.include_router(executions.router)
 
 class CopilotRequest(BaseModel):
     question: str
@@ -35,9 +48,6 @@ class EntityExtractionRequest(BaseModel):
     case_id: str
     evidence_id: str
     evidence_text: str
-
-class OrchestratorCommandRequest(BaseModel):
-    command: str
 
 
 @app.get("/")
@@ -70,7 +80,7 @@ def health_check():
         )
 
 
-app.get("/cases/{case_id}")
+@app.get("/cases/{case_id}")
 def get_case(case_id: str):
 
     query = """
@@ -443,27 +453,6 @@ def get_case_overview(case_id: str):
         raise
 
     except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=str(error),
-        )
-
-
-@app.post("/orchestrator/command")
-def orchestrator_command(
-    case_id: str,
-    request: OrchestratorCommandRequest,
-):
-
-    try:
-
-        return run_orchestrated_command(
-            case_id=case_id,
-            command=request.command,
-        )
-
-    except Exception as error:
-
         raise HTTPException(
             status_code=500,
             detail=str(error),

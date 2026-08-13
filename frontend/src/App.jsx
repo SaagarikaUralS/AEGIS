@@ -176,14 +176,23 @@ function App() {
         }
       );
 
+      const data = await response.json().catch(() => null);
+
       if (!response.ok) {
-        throw new Error(await response.text());
+        throw new Error(
+          data?.detail ||
+          data?.message ||
+          JSON.stringify(data) ||
+          `HTTP ${response.status}`
+        );
       }
+
+      console.log("Retry successful:", data);
 
       await loadDashboard();
     } catch (error) {
       console.error("Retry failed:", error);
-      alert("Could not retry task.");
+      alert(`Could not retry task:\n${error.message}`);
     }
   }
 

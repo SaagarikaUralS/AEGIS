@@ -53,6 +53,52 @@ def get_tasks(
         )
     }
 
+@router.post("/tasks/{task_id}/retry")
+def retry_task(task_id: str):
+
+    try:
+        task = task_store.get_task(task_id)
+
+        if not task:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Task {task_id} not found",
+            )
+
+        if task["status"] not in (
+            "FAILED",
+            "HUMAN_REVIEW",
+            "BLOCKED",
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Task {task_id} cannot be retried "
+                    f"from status {task['status']}"
+                ),
+            )
+
+        updated_task = task_store.retry_task(task_id)
+
+        if not updated_task:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Task {task_id} not found",
+            )
+
+        return {
+            "message": "Task queued for retry",
+            "task": updated_task,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
 
 @router.get("/status")
 def get_orchestrator_status():

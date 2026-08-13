@@ -293,6 +293,31 @@ class TaskStore:
             },
         )
 
+    def retry_task(self, task_id: str):
+        query = """
+        MATCH (t:InvestigationTask {task_id: $task_id})
+
+        SET
+            t.status = 'READY',
+            t.error = null,
+            t.started_at = null,
+            t.completed_at = null
+
+        RETURN t
+        """
+
+        result = neo4j_client.run_query(
+            query,
+            {
+                "task_id": task_id,
+            },
+        )
+
+        if not result:
+            return None
+
+        return self.get_task(task_id)
+
     def mark_human_review(self, task_id: str, error: str):
         query = """
         MATCH (t:InvestigationTask {task_id: $task_id})

@@ -1,0 +1,14 @@
+[
+  {
+    "case_id": "CASE-001",
+    "title": "Digital Investigation Alpha",
+    "status": "ACTIVE",
+    "created_at": "2026-08-13"
+  },
+  {
+    "case_id": "CASE-002",
+    "title": "Digital Investigation Beta",
+    "status": "ACTIVE",
+    "created_at": "2026-08-13"
+  }
+]

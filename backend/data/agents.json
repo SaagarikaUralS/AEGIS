@@ -1,0 +1,22 @@
+[
+  {
+    "agent_id": "entity_extraction",
+    "name": "Entity Extraction Agent",
+    "status": "IDLE"
+  },
+  {
+    "agent_id": "correlation",
+    "name": "Correlation & Pattern Analysis Agent",
+    "status": "IDLE"
+  },
+  {
+    "agent_id": "lead_intelligence",
+    "name": "Lead Intelligence Agent",
+    "status": "IDLE"
+  },
+  {
+    "agent_id": "victim_safeguarding",
+    "name": "Victim Safeguarding Agent",
+    "status": "IDLE"
+  }
+]

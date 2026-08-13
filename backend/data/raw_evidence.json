@@ -1,0 +1,17 @@
+[
+  {
+    "case_id": "CASE-001",
+    "evidence_id": "RAW-001",
+    "evidence_text": "Synthetic investigation record. Account alpha_synthetic was associated with Device-001. The record references Subject Alpha and Location-X."
+  },
+  {
+    "case_id": "CASE-001",
+    "evidence_id": "RAW-002",
+    "evidence_text": "Synthetic investigation record. Account beta_synthetic was associated with Device-002. The record references Subject Beta and Location-Y."
+  },
+  {
+    "case_id": "CASE-002",
+    "evidence_id": "RAW-003",
+    "evidence_text": "Synthetic investigation record. Account beta_synthetic was associated with Device-003. The record references Subject Gamma and Location-Z."
+  }
+]

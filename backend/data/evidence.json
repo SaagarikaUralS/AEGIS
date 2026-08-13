@@ -1,0 +1,23 @@
+[
+  {
+    "case_id": "CASE-001",
+    "evidence_id": "EVID-001",
+    "type": "chat",
+    "source": "device_001",
+    "description": "Synthetic chat metadata containing account and identity references."
+  },
+  {
+    "case_id": "CASE-001",
+    "evidence_id": "EVID-002",
+    "type": "device",
+    "source": "device_001",
+    "description": "Synthetic device metadata associated with an investigation subject."
+  },
+  {
+    "case_id": "CASE-001",
+    "evidence_id": "EVID-003",
+    "type": "image_metadata",
+    "source": "device_001",
+    "description": "Synthetic image metadata used to demonstrate evidence correlation."
+  }
+]

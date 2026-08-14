@@ -10,7 +10,9 @@ RETURN c
 CREATE_EVIDENCE = """
 MATCH (c:Case {case_id: $case_id})
 MERGE (e:Evidence {evidence_id: $evidence_id})
-SET e.type = $type,
+SET
+    e.case_id = $case_id,
+    e.type = $type,
     e.source = $source,
     e.description = $description
 MERGE (c)-[:HAS_EVIDENCE]->(e)
@@ -53,7 +55,9 @@ RETURN c, r, connected
 
 CREATE_RAW_EVIDENCE = """
 MERGE (e:Evidence {evidence_id: $evidence_id})
-SET e.type = 'raw_text',
+SET
+    e.case_id = $case_id,
+    e.type = 'raw_text',
     e.source = 'synthetic',
     e.description = $description
 WITH e

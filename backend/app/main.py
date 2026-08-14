@@ -19,6 +19,7 @@ from app.copilot.assistant import ask_copilot
 
 from app.api.orchestrator import router as orchestrator_router
 from app.api import executions, cases
+from app.orchestrator.scheduler import scheduler
 
 
 app = FastAPI(
@@ -26,6 +27,10 @@ app = FastAPI(
     description="AI-Enabled Evidence & Graph Intelligence System",
     version="0.2.0",
 )
+
+@app.on_event("startup")
+def start_aegis_scheduler():
+    scheduler.start()
 
 app.add_middleware(
     CORSMiddleware,

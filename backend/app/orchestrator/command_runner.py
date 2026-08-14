@@ -12,23 +12,38 @@ from app.services.execution_service import (
     complete_execution,
 )
 
+GET_EVIDENCE_BY_ID = """
+MATCH (e)
+WHERE (e:Evidence OR e:RawEvidence)
+  AND e.evidence_id = $evidence_id
+  AND e.case_id = $case_id
 
-GET_RAW_EVIDENCE = """
-MATCH (r:RawEvidence {evidence_id: $evidence_id})
 RETURN
-    r.evidence_id AS evidence_id,
-    r.case_id AS case_id,
-    r.description AS description
+    e.evidence_id AS evidence_id,
+    e.case_id AS case_id,
+    coalesce(e.description, "") AS description,
+    CASE
+        WHEN e:RawEvidence THEN "raw"
+        ELSE "structured"
+    END AS evidence_type
 """
 
 
-GET_ALL_RAW_EVIDENCE = """
-MATCH (r:RawEvidence {case_id: $case_id})
+GET_ALL_CASE_EVIDENCE = """
+MATCH (e)
+WHERE (e:Evidence OR e:RawEvidence)
+  AND e.case_id = $case_id
+
 RETURN
-    r.evidence_id AS evidence_id,
-    r.case_id AS case_id,
-    r.description AS description
-ORDER BY r.evidence_id
+    e.evidence_id AS evidence_id,
+    e.case_id AS case_id,
+    coalesce(e.description, "") AS description,
+    CASE
+        WHEN e:RawEvidence THEN "raw"
+        ELSE "structured"
+    END AS evidence_type
+
+ORDER BY e.evidence_id
 """
 
 
@@ -41,9 +56,10 @@ def get_evidence(case_id: str, evidence_ids: list[str]):
         for evidence_id in evidence_ids:
 
             result = neo4j_client.run_query(
-                GET_RAW_EVIDENCE,
+                GET_EVIDENCE_BY_ID,
                 {
                     "evidence_id": evidence_id,
+                    "case_id": case_id,
                 },
             )
 
@@ -53,7 +69,7 @@ def get_evidence(case_id: str, evidence_ids: list[str]):
         return rows
 
     return neo4j_client.run_query(
-        GET_ALL_RAW_EVIDENCE,
+        GET_ALL_CASE_EVIDENCE,
         {
             "case_id": case_id,
         },

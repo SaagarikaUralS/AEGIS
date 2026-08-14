@@ -35,7 +35,12 @@ function App() {
 
   const [copilotQuestion, setCopilotQuestion] = useState("");
   const [copilotAnswer, setCopilotAnswer] = useState("");
+  const [copilotContext, setCopilotContext] = useState(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
+
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageResult, setImageResult] = useState(null);
 
   async function loadCases() {
     setCasesLoading(true);
@@ -140,16 +145,18 @@ function App() {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${API}/orchestrator/command`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          command: command.trim(),
-          default_case_id: caseId,
-        }),
-      });
+      const response = await fetch(
+        `${API}/orchestrator/command?case_id=${encodeURIComponent(caseId)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            command: command.trim(),
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -196,6 +203,54 @@ function App() {
     }
   }
 
+  async function uploadEvidenceImage() {
+    if (!caseId || !selectedImage) return;
+
+    setImageUploading(true);
+    setImageResult(null);
+
+    try {
+      const formData = new FormData();
+
+      formData.append("case_id", caseId);
+      formData.append("file", selectedImage);
+
+      const response = await fetch(
+        `${API}/agents/entity-extraction/image?case_id=${encodeURIComponent(caseId)}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json().catch(() => null);
+
+      console.log("IMAGE EXTRACTION RESPONSE:", data);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.detail ||
+          data?.message ||
+          `HTTP ${response.status}`
+        );
+      }
+
+      setImageResult(data);
+
+      await loadDashboard();
+
+    } catch (error) {
+      console.error("Image extraction failed:", error);
+
+      alert(
+        `Image extraction failed:\n${error.message}`
+      );
+
+    } finally {
+      setImageUploading(false);
+    }
+  }
+
   async function askCopilot(event) {
     event.preventDefault();
 
@@ -204,6 +259,7 @@ function App() {
     }
 
     setCopilotLoading(true);
+    setCopilotContext(null);
 
     try {
       const response = await fetch(`${API}/copilot/${caseId}`, {
@@ -221,6 +277,7 @@ function App() {
       }
 
       const data = await response.json();
+      setCopilotContext(data.context || null);
 
       setCopilotAnswer(
         data.answer ||
@@ -342,7 +399,13 @@ function App() {
               setCopilotQuestion={setCopilotQuestion}
               copilotAnswer={copilotAnswer}
               copilotLoading={copilotLoading}
+              copilotContext={copilotContext}
               askCopilot={askCopilot}
+              selectedImage={selectedImage}
+              setSelectedImage={setSelectedImage}
+              imageUploading={imageUploading}
+              imageResult={imageResult}
+              uploadEvidenceImage={uploadEvidenceImage}
             />
           )}
 
@@ -464,6 +527,98 @@ function CaseBrowser({ cases, loading, onOpenCase }) {
   );
 }
 
+function EvidenceUpload({
+  selectedImage,
+  setSelectedImage,
+  imageUploading,
+  imageResult,
+  uploadEvidenceImage,
+}) {
+  return (
+    <section className="panel evidence-panel">
+      <div className="panel-header">
+        <div>
+          <div className="eyebrow">DIGITAL EVIDENCE</div>
+          <h3>Evidence Extraction</h3>
+        </div>
+
+        <div className="panel-status">
+          ENTITY EXTRACTION
+        </div>
+      </div>
+
+      <div className="evidence-upload-area">
+
+        <div className="evidence-picker">
+          <label className="upload-button">
+            Choose Image
+
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                setSelectedImage(file);
+              }}
+            />
+          </label>
+
+          {selectedImage && (
+            <span className="selected-file">
+              {selectedImage.name}
+            </span>
+          )}
+        </div>
+
+        {selectedImage && (
+          <div className="evidence-preview">
+
+            <img
+              src={URL.createObjectURL(selectedImage)}
+              alt="Evidence preview"
+            />
+
+            <button
+              className="primary-button"
+              onClick={uploadEvidenceImage}
+              disabled={imageUploading}
+            >
+              {imageUploading
+                ? "Extracting..."
+                : "Run Entity Extraction"}
+            </button>
+
+          </div>
+        )}
+      </div>
+
+      {imageResult && (
+        <div className="evidence-results">
+
+          <div className="result-heading">
+            Extraction Complete
+          </div>
+
+          {/* Safely display the actual backend response */}
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontSize: "12px",
+              lineHeight: "1.5",
+              opacity: 0.8,
+            }}
+          >
+            {JSON.stringify(imageResult, null, 2)}
+          </pre>
+
+        </div>
+      )}
+    </section>
+  );
+}
+
 function CaseWorkspace({
   caseId,
   overview,
@@ -474,8 +629,14 @@ function CaseWorkspace({
   copilotQuestion,
   setCopilotQuestion,
   copilotAnswer,
+  copilotContext,
   copilotLoading,
   askCopilot,
+  selectedImage,
+  setSelectedImage,
+  imageUploading,
+  imageResult,
+  uploadEvidenceImage,
 }) {
   const people = overview?.people || [];
   const accounts = overview?.accounts || [];
@@ -610,6 +771,14 @@ function CaseWorkspace({
             )}
           </div>
         </section>
+
+        <EvidenceUpload
+          selectedImage={selectedImage}
+          setSelectedImage={setSelectedImage}
+          imageUploading={imageUploading}
+          imageResult={imageResult}
+          uploadEvidenceImage={uploadEvidenceImage}
+        />
 
         {/* Findings */}
         <section className="panel">

@@ -36,11 +36,7 @@ class TaskState(TypedDict, total=False):
 def execute_entity(state: TaskState):
 
     case_id = state["case_id"]
-
-    evidence_ids = state.get(
-        "evidence_ids",
-        [],
-    )
+    evidence_ids = state.get("evidence_ids", [])
 
     results = []
 
@@ -49,9 +45,9 @@ def execute_entity(state: TaskState):
         for evidence_id in evidence_ids:
 
             query = """
-            MATCH (r:RawEvidence {
-                evidence_id: $evidence_id
-            })
+            MATCH (r:Evidence)
+            WHERE r.evidence_id = $evidence_id
+              AND r.case_id = $case_id
 
             RETURN
                 r.evidence_id AS evidence_id,
@@ -61,13 +57,14 @@ def execute_entity(state: TaskState):
             rows = neo4j_client.run_query(
                 query,
                 {
-                    "evidence_id": evidence_id
+                    "evidence_id": evidence_id,
+                    "case_id": case_id,
                 },
             )
 
             if not rows:
                 raise ValueError(
-                    f"Evidence {evidence_id} not found"
+                    f"Evidence {evidence_id} not found in case {case_id}"
                 )
 
             evidence = rows[0]
@@ -83,18 +80,21 @@ def execute_entity(state: TaskState):
     else:
 
         query = """
-        MATCH (r:RawEvidence {
-            case_id: $case_id
-        })
+        MATCH (r:Evidence)
+        WHERE r.case_id = $case_id
 
         RETURN
             r.evidence_id AS evidence_id,
             r.description AS evidence_text
+
+        ORDER BY r.evidence_id
         """
 
         rows = neo4j_client.run_query(
             query,
-            {"case_id": case_id},
+            {
+                "case_id": case_id
+            },
         )
 
         for evidence in rows:

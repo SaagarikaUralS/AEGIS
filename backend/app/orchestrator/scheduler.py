@@ -83,30 +83,6 @@ class TaskScheduler:
                     task["task_id"],
                 )
 
-                scheduled_any = True
-
-            running_tasks = [
-                task
-                for task in task_store.get_tasks()
-                if task["status"] == "RUNNING"
-            ]
-
-            waiting_tasks = [
-                task
-                for task in task_store.get_tasks()
-                if task["status"] in [
-                    "READY",
-                    "WAITING",
-                    "RUNNING",
-                ]
-            ]
-
-            if not waiting_tasks:
-                break
-
-            if not scheduled_any and not running_tasks:
-                break
-
             time.sleep(0.5)
 
     def _execute(self, task_id: str):

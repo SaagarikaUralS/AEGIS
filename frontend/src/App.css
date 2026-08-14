@@ -1547,3 +1547,99 @@ button {
     width: 100%;
   }
 }
+
+.evidence-panel {
+  margin-top: 24px;
+}
+
+.panel-status {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+
+.evidence-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.evidence-picker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.upload-button,
+.primary-button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.selected-file {
+  font-size: 13px;
+  opacity: 0.65;
+}
+
+.evidence-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.evidence-preview img {
+  width: 260px;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.evidence-results {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.result-heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.result-item {
+  margin-bottom: 16px;
+}
+
+.result-item > span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.5;
+  margin-bottom: 5px;
+}
+
+.result-item p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.entity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entity-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.06);
+}

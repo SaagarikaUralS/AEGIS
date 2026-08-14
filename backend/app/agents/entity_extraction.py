@@ -192,7 +192,10 @@ def write_entities_to_graph(state: EntityExtractionState):
             WITH p
 
             MATCH (c:Case {case_id: $case_id})
-            MATCH (e:Evidence {evidence_id: $evidence_id})
+
+            MATCH (e)
+            WHERE (e:Evidence OR e:RawEvidence)
+                AND e.evidence_id = $evidence_id
 
             MERGE (c)-[:INVOLVES]->(p)
             MERGE (e)-[:MENTIONS]->(p)
@@ -207,7 +210,10 @@ def write_entities_to_graph(state: EntityExtractionState):
             WITH a
 
             MATCH (c:Case {case_id: $case_id})
-            MATCH (e:Evidence {evidence_id: $evidence_id})
+
+            MATCH (e)
+            WHERE (e:Evidence OR e:RawEvidence)
+                AND e.evidence_id = $evidence_id
 
             MERGE (c)-[:CONTAINS_ACCOUNT]->(a)
             MERGE (e)-[:MENTIONS]->(a)
@@ -222,7 +228,10 @@ def write_entities_to_graph(state: EntityExtractionState):
             WITH d
 
             MATCH (c:Case {case_id: $case_id})
-            MATCH (e:Evidence {evidence_id: $evidence_id})
+
+            MATCH (e)
+            WHERE (e:Evidence OR e:RawEvidence)
+                AND e.evidence_id = $evidence_id
 
             MERGE (c)-[:CONTAINS_DEVICE]->(d)
             MERGE (e)-[:MENTIONS]->(d)
@@ -237,7 +246,10 @@ def write_entities_to_graph(state: EntityExtractionState):
             WITH l
 
             MATCH (c:Case {case_id: $case_id})
-            MATCH (e:Evidence {evidence_id: $evidence_id})
+            
+            MATCH (e)
+            WHERE (e:Evidence OR e:RawEvidence)
+                AND e.evidence_id = $evidence_id
 
             MERGE (c)-[:MENTIONS_LOCATION]->(l)
             MERGE (e)-[:MENTIONS]->(l)

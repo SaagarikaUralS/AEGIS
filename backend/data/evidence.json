@@ -19,5 +19,35 @@
     "type": "image_metadata",
     "source": "device_001",
     "description": "Synthetic image metadata used to demonstrate evidence correlation."
-  }
+  },
+  {
+    "case_id": "CASE-002",
+    "evidence_id": "EVID-004",
+    "type": "device",
+    "source": "device_001",
+    "description": "Synthetic device metadata associated with an investigation subject."
+  },
+  {
+    "case_id": "CASE-002",
+    "evidence_id": "EVID-005",
+    "type": "image_metadata",
+    "source": "device_001",
+    "description": "Synthetic image metadata used to demonstrate evidence correlation."
+  },
+  {
+  "case_id": "CASE-003",
+  "evidence_id": "EVID-006",
+  "type": "chat_export",
+  "description": "Synthetic chat screenshot showing communication involving beta_synthetic and Subject Gamma.",
+  "source": "synthetic_demo",
+  "created_at": "2026-08-14"
+},
+{
+  "case_id": "CASE-003",
+  "evidence_id": "EVID-007",
+  "type": "chat_export",
+  "description": "Synthetic device metadata linking the chat evidence to Device-003 and Location-Z.",
+  "source": "synthetic_demo",
+  "created_at": "2026-08-14"
+}
 ]

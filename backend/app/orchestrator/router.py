@@ -1,4 +1,6 @@
+import re
 from typing import Literal
+
 from pydantic import BaseModel, Field
 from langchain_ollama import ChatOllama
 
@@ -26,7 +28,31 @@ llm = ChatOllama(
 router_llm = llm.with_structured_output(OrchestratorDecision)
 
 
-def classify_command(command: str, case_id: str) -> OrchestratorDecision:
+def extract_evidence_ids(command: str) -> list[str]:
+    """
+    Deterministically extract evidence identifiers from the command.
+
+    Supported identifiers:
+    - RAW-001
+    - RAW-004
+    - EVID-001
+    - EVID-006
+    """
+
+    pattern = r"\b(?:RAW|EVID)-\d+\b"
+
+    return [
+        match.upper()
+        for match in re.findall(pattern, command, flags=re.IGNORECASE)
+    ]
+
+
+def classify_command(
+    command: str,
+    case_id: str,
+) -> OrchestratorDecision:
+
+    evidence_ids = extract_evidence_ids(command)
 
     prompt = f"""
 You are the task-routing component of AEGIS, an AI-assisted
@@ -79,12 +105,23 @@ Use this when the investigator wants to:
 IMPORTANT:
 - Select exactly ONE agent.
 - Do not invent an agent.
-- Extract evidence IDs if explicitly mentioned.
-- If no evidence ID is specified, return an empty evidence_ids list.
 - Do not perform the investigation yourself.
 - Only determine which agent should handle the request.
+- The case ID is already provided separately.
+- Do not invent or modify evidence IDs.
+- Evidence identifiers are extracted deterministically by the system.
 
-Return the structured routing decision.
+Return:
+- the selected agent
+- a concise task description
+- a confidence score between 0 and 1
+
+The system will supply the evidence IDs separately.
 """
 
-    return router_llm.invoke(prompt)
+    decision = router_llm.invoke(prompt)
+
+    # Override any LLM-generated evidence IDs with deterministic extraction.
+    decision.evidence_ids = evidence_ids
+
+    return decision

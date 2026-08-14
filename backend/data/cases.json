@@ -16,5 +16,11 @@
   "title": "Digital Investigation Gamma",
   "status": "ACTIVE",
   "created_at": "2026-08-14"
+  },
+  {
+  "case_id": "CASE-004",
+  "title": "Digital Investigation Delta",
+  "status": "ACTIVE",
+  "created_at": "2026-08-14"
   }
 ]

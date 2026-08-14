@@ -18,5 +18,10 @@
   "case_id": "CASE-003",
   "evidence_id": "RAW-004",
   "evidence_text": "Synthetic investigation record. Account beta_synthetic was associated with Device-003. The record references Subject Gamma and Location-Z. The account beta_synthetic was observed in communication metadata associated with the investigation."
+  },
+  {
+  "case_id": "CASE-004",
+  "evidence_id": "RAW-005",
+  "evidence_text": "Synthetic investigation record. Account delta_synthetic was associated with Device-004. The record references Subject Gamma and Location-Z. The account delta_synthetic was observed in communication metadata associated with the investigation."
   }
 ]

@@ -49,5 +49,29 @@
   "description": "Synthetic device metadata linking the chat evidence to Device-003 and Location-Z.",
   "source": "synthetic_demo",
   "created_at": "2026-08-14"
+},
+{
+  "case_id": "CASE-004",
+  "evidence_id": "EVID-008",
+  "type": "device",
+  "source": "device_004",
+  "description": "Synthetic device metadata associated with an investigation subject.",
+  "created_at": "2026-08-14"
+},
+{
+  "case_id": "CASE-004",
+  "evidence_id": "EVID-009",
+  "type": "chat_export",
+  "description": "Synthetic chat screenshot showing communication involving Subject Delta and Subject Gamma.",
+  "source": "synthetic_demo",
+  "created_at": "2026-08-14"
+},
+{
+  "case_id": "CASE-004",
+  "evidence_id": "EVID-0010",
+  "type": "chat_export",
+  "description": "Synthetic device metadata linking the chat evidence to Device-004 and Location-Z.",
+  "source": "synthetic_demo",
+  "created_at": "2026-08-14"
 }
 ]
